@@ -59,5 +59,10 @@ Thumbs.db
 # Logs
 *.log
 
-# Memory files (optional - comment out if you want to track memory)
-# ~/.assistant/
+# User Data Protection - NEVER commit user data
+# These contain personal goals, tasks, and journal entries
+# Users: Your ~/.assistant/ directory is outside this repo and safe
+# Developers: Respect user data - never modify or commit these paths
+~/.assistant/
+*/.assistant/
+**/.assistant/

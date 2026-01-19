@@ -949,24 +949,57 @@ def handle_status(args: argparse.Namespace) -> None:
 def handle_init(args: argparse.Namespace) -> None:
     """Handle the init command."""
     import os
+    from pathlib import Path
+
     memory_dir = config.memory_dir
+    telos_file = Path(memory_dir) / "telos.jsonl"
+    journal_file = Path(memory_dir) / "journal.md"
+
+    # Check for existing data files
+    telos_exists = telos_file.exists() and telos_file.stat().st_size > 0
+    journal_exists = journal_file.exists() and journal_file.stat().st_size > 0
+
+    if telos_exists or journal_exists:
+        print(f"{Colors.warning('⚠️  Existing memory files detected!')}")
+        if telos_exists:
+            print(f"{Colors.info('📋 Telos file:')} {telos_file} ({Colors.bold('contains data')})")
+        if journal_exists:
+            print(f"{Colors.info('📖 Journal file:')} {journal_file} ({Colors.bold('contains data')})")
+
+        print(f"\n{Colors.bold('Important:')} Your personal data (goals, tasks, journal entries) will be preserved.")
+        print(f"{Colors.dim('The init command only creates the directory structure if missing.')}")
+        print(f"{Colors.dim('No existing data will be modified or overwritten.')}\n")
 
     if os.path.exists(memory_dir):
-        print(f"✅ Memory directory already exists: {memory_dir}")
+        print(f"{Colors.success('✅ Memory directory already exists:')} {memory_dir}")
+
+        # Check if we need to initialize the managers (they create files if missing)
+        if not telos_exists or not journal_exists:
+            print(f"{Colors.info('🔄 Initializing missing memory files...')}")
+            try:
+                talaos = TelosManager()  # Creates telos.jsonl if missing
+                journal = JournalManager()  # Creates journal.md if missing
+                print(f"{Colors.success('✅ Memory files initialized')}")
+            except Exception as e:
+                print(f"{Colors.error('❌ Failed to initialize memory files:')} {e}")
+                return
+
+        print(f"{Colors.success('🎉 Ready to start using the assistant!')}")
+        print(f"{Colors.dim('💡 Your data is safe and will never be overwritten by updates.')}")
     else:
         try:
             os.makedirs(memory_dir, exist_ok=True)
-            print(f"✅ Created memory directory: {memory_dir}")
+            print(f"{Colors.success('✅ Created memory directory:')} {memory_dir}")
 
             # Initialize empty files
             talaos = TelosManager()
             journal = JournalManager()
 
-            print("✅ Initialized memory files")
-            print("🎉 Ready to start using the assistant!")
+            print(f"{Colors.success('✅ Initialized memory files')}")
+            print(f"{Colors.success('🎉 Ready to start using the assistant!')}")
 
         except Exception as e:
-            print(f"❌ Failed to initialize: {e}")
+            print(f"{Colors.error('❌ Failed to initialize:')} {e}")
 
 
 def handle_chat(args: argparse.Namespace) -> None:

@@ -31,11 +31,20 @@ Talaos Manager ← Journal Manager ← Change Applier
 - Ollama server running locally or remotely
 - Internet connection for Ollama API
 
+### ⚠️ Data Safety Notice
+
+**Your personal data is completely safe!** 🎉
+
+- **Goals, tasks, and journal entries** are stored in `~/.assistant/memory/`
+- **Never overwritten** by updates, development, or new versions
+- **Always preserved** - pull, merge, or reinstall without worry
+- **Append-only design** prevents accidental data loss
+
 ### Installation
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/SnekretAIry.git
+   git clone https://github.com/nomore1007/SnekretAIry.git
    cd SnekretAIry
    ```
 
@@ -122,10 +131,20 @@ python assistant.py model select --persist
 
 ```
 ~/.assistant/memory/
-├── telos.jsonl        # Goals and tasks
-├── journal.md         # Reflections with YAML metadata
-└── changes.jsonl      # Complete audit trail
+├── telos.jsonl        # Goals and tasks (append-only)
+├── journal.md         # Reflections with YAML metadata (append-only)
+└── changes.jsonl      # Complete audit trail (append-only)
 ```
+
+### 🛡️ Data Protection
+
+**Your personal data is sacred and protected:**
+
+- **🔒 Append-Only Files**: No destructive operations ever
+- **🛡️ Update Safe**: Pull new versions without data loss
+- **📦 Isolated Storage**: User data outside project directory
+- **🔄 Migration Safe**: Future updates preserve all data
+- **📋 Complete Audit**: Every change is logged and reversible
 
 ## 🤖 AI Integration
 
