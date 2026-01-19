@@ -96,6 +96,7 @@ class EmailProcessor:
             email_ids = email_ids[-self.max_emails:]  # Get most recent emails
 
             logger.info(f"Found {len(email_ids)} recent emails to process")
+            results['emails_found'] = len(email_ids)
 
             # Process emails (don't mark as processed yet)
             processed_emails = []
@@ -135,6 +136,7 @@ class EmailProcessor:
                     logger.error(f"LLM analysis failed: {e}")
             else:
                 results['emails_processed'] = 0
+                results['success'] = True  # This is successful - no new emails to process
                 logger.info("Email processing complete: no new emails to process")
 
         except imaplib.IMAP4.error as e:

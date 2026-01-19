@@ -1222,6 +1222,8 @@ def handle_email(args: argparse.Namespace) -> None:
             success_color = Colors.success if results['success'] else Colors.error
             print(f"{success_color('✅ Success:')} {results['success']}")
             print(f"{Colors.info('🔗 Connection:')} {results['connection_status']}")
+            emails_found = results.get('emails_found', 0)
+            print(f"{Colors.info('📧 Emails Found:')} {emails_found}")
             print(f"{Colors.info('📧 Emails Processed:')} {Colors.bold(str(results['emails_processed']))}")
 
             if results['errors']:
@@ -1261,6 +1263,14 @@ def handle_email(args: argparse.Namespace) -> None:
                         print(f"{Colors.success('📋 Successfully added')} {added_count} {Colors.success('todos to your list!')}")
                     else:
                         print(f"{Colors.dim('❌ Todo addition cancelled')}")
+            elif results['emails_processed'] == 0 and results['success'] and emails_found > 0:
+                print(f"\n{Colors.success('✅ All caught up!')}")
+                print(f"{Colors.info('📧 Found')} {emails_found} {Colors.info('recent emails, but all have already been processed.')}")
+                print(f"{Colors.dim('💡 New emails will be processed automatically on your next run!')}")
+            elif results['emails_processed'] == 0 and emails_found == 0:
+                print(f"\n{Colors.info('📭 No emails found in the last 7 days.')}")
+                print(f"{Colors.dim('💡 Check your email settings or try again later.')}")
+
 
         except Exception as e:
             print(f"❌ Email processing failed: {e}")
