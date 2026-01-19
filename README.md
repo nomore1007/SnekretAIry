@@ -246,6 +246,55 @@ python assistant.py --dry-run <command>
 python assistant.py --log-level DEBUG <command>
 ```
 
+## 🧪 Testing & Development
+
+### Quick Test Commands
+
+```bash
+# Check system status
+python assistant.py status
+
+# Test goal management
+python assistant.py goal add "Test goal for development"
+python assistant.py goal list
+
+# Test task management
+python assistant.py task add "Test task" --goal <goal_id>
+python assistant.py task list
+
+# Test journaling
+python assistant.py journal add "Test journal entry"
+python assistant.py journal list
+
+# Test AI queries (requires Ollama)
+python assistant.py query "help me plan my development tasks"
+
+# Test email processing (requires email configuration)
+python assistant.py email process
+```
+
+### Development Testing
+
+```bash
+# Initialize development environment
+python assistant.py init
+
+# Test with dry-run mode (no actual changes)
+python assistant.py --dry-run goal add "Dry run test"
+
+# Check logs with debug level
+python assistant.py --log-level DEBUG status
+```
+
+### Component Testing
+
+The system includes comprehensive testing for all components:
+- Memory management (goals, tasks, journal)
+- Context building and relevance
+- AI integration and safety validation
+- Email processing and analysis
+- CLI interface and user interaction
+
 ## 📝 API Reference
 
 ### Core Classes
