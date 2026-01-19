@@ -455,6 +455,13 @@ This document should be updated as the codebase evolves and new patterns emerge.
 - **Third-Party**: Calendar integration, task managers, fitness trackers, social media
 - **API Ecosystem**: REST API, webhooks, plugin system, SDK
 
+### Data Management & User Safety
+- **Preserve User Data**: Never overwrite or delete user telos (goals/tasks) and journal files during development or version updates
+- **Append-Only Philosophy**: All user data files are append-only to prevent data loss
+- **Safe Development**: Development workflows must account for existing user data
+- **Backup Requirements**: Always backup user data before major changes
+- **Migration Safety**: Data migration scripts must be reversible and tested
+
 ### Community & Growth
 - **Open Source Strategy**: Contribution guidelines, issue templates, regular releases
 - **Marketing**: Demo videos, user showcases, partnerships, academic collaborations
