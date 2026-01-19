@@ -7,6 +7,7 @@ Provides both command-based and interactive conversational modes.
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -20,6 +21,174 @@ from memory import TelosManager, JournalManager
 
 
 logger = get_logger(__name__)
+
+
+# ANSI color codes for colored output
+class Colors:
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    GRAY = '\033[90m'
+
+    @staticmethod
+    def success(text: str) -> str:
+        return f"{Colors.GREEN}{text}{Colors.RESET}"
+
+    @staticmethod
+    def error(text: str) -> str:
+        return f"{Colors.RED}{text}{Colors.RESET}"
+
+    @staticmethod
+    def warning(text: str) -> str:
+        return f"{Colors.YELLOW}{text}{Colors.RESET}"
+
+    @staticmethod
+    def info(text: str) -> str:
+        return f"{Colors.BLUE}{text}{Colors.RESET}"
+
+    @staticmethod
+    def bold(text: str) -> str:
+        return f"{Colors.BOLD}{text}{Colors.RESET}"
+
+    @staticmethod
+    def dim(text: str) -> str:
+        return f"{Colors.GRAY}{text}{Colors.RESET}"
+
+    @staticmethod
+    def cyan(text: str) -> str:
+        return f"{Colors.CYAN}{text}{Colors.RESET}"
+
+    @staticmethod
+    def green(text: str) -> str:
+        return f"{Colors.GREEN}{text}{Colors.RESET}"
+
+    @staticmethod
+    def red(text: str) -> str:
+        return f"{Colors.RED}{text}{Colors.RESET}"
+
+    @staticmethod
+    def yellow(text: str) -> str:
+        return f"{Colors.YELLOW}{text}{Colors.RESET}"
+
+    @staticmethod
+    def blue(text: str) -> str:
+        return f"{Colors.BLUE}{text}{Colors.RESET}"
+
+    @staticmethod
+    def gray(text: str) -> str:
+        return f"{Colors.GRAY}{text}{Colors.RESET}"
+
+
+class ProgressBar:
+    """Simple progress bar implementation."""
+
+    def __init__(self, total: int, prefix: str = '', suffix: str = '', length: int = 30):
+        self.total = total
+        self.prefix = prefix
+        self.suffix = suffix
+        self.length = length
+        self.current = 0
+        self.start_time = time.time()
+
+    def update(self, current: Optional[int] = None) -> None:
+        if current is not None:
+            self.current = current
+
+        percent = self.current / self.total if self.total > 0 else 1.0
+        filled_length = int(self.length * percent)
+
+        bar = '█' * filled_length + '░' * (self.length - filled_length)
+
+        elapsed = time.time() - self.start_time
+        eta = (elapsed / self.current * (self.total - self.current)) if self.current > 0 else 0
+
+        sys.stdout.write(f'\r{self.prefix} [{bar}] {percent:.1%} ({self.current}/{self.total}) ETA: {eta:.1f}s {self.suffix}')
+        sys.stdout.flush()
+
+        if self.current >= self.total:
+            print()  # New line when complete
+
+    def increment(self, amount: int = 1) -> None:
+        self.current += amount
+        self.update()
+
+
+class AutoComplete:
+    """Simple command auto-completion helper."""
+
+    @staticmethod
+    def suggest_command(partial: str, commands: List[str]) -> List[str]:
+        """Return commands that start with the partial input."""
+        partial_lower = partial.lower()
+        return [cmd for cmd in commands if cmd.lower().startswith(partial_lower)]
+
+    @staticmethod
+    def show_suggestions(partial: str, available: List[str], max_suggestions: int = 5) -> None:
+        """Show auto-complete suggestions."""
+        suggestions = AutoComplete.suggest_command(partial, available)
+        if suggestions:
+            print(f"\n{Colors.dim('Suggestions:')}")
+            for i, suggestion in enumerate(suggestions[:max_suggestions], 1):
+                # Highlight the matching part
+                match_len = len(partial)
+                highlighted = f"{Colors.bold(suggestion[:match_len])}{suggestion[match_len:]}"
+                print(f"  {Colors.cyan(str(i))}. {highlighted}")
+
+            if len(suggestions) > max_suggestions:
+                print(f"  {Colors.dim('... and')} {len(suggestions) - max_suggestions} {Colors.dim('more')}")
+            print(f"{Colors.dim('Press Tab to cycle through suggestions')}\n")
+
+
+class InteractivePrompt:
+    """Enhanced interactive prompts with validation."""
+
+    @staticmethod
+    def confirm(message: str, default: bool = False) -> bool:
+        """Get yes/no confirmation with colored output."""
+        default_text = "(Y/n)" if default else "(y/N)"
+        while True:
+            response = input(f"{Colors.BOLD}{message}{Colors.RESET} {Colors.dim(default_text)}: ").strip().lower()
+            if not response:
+                return default
+            if response in ['y', 'yes']:
+                return True
+            if response in ['n', 'no']:
+                return False
+            print(f"{Colors.error('Please enter y/yes or n/no')}")
+
+    @staticmethod
+    def select(options: List[str], prompt: str = "Select an option") -> int:
+        """Present numbered options and get selection."""
+        print(f"\n{Colors.bold(prompt)}:")
+        for i, option in enumerate(options, 1):
+            print(f"  {Colors.cyan(str(i))}. {option}")
+
+        while True:
+            try:
+                choice = input(f"\n{Colors.dim('Enter choice (1-{len(options)}) or q to quit')}: ").strip()
+                if choice.lower() in ['q', 'quit']:
+                    raise KeyboardInterrupt
+                choice_num = int(choice)
+                if 1 <= choice_num <= len(options):
+                    return choice_num - 1
+                print(f"{Colors.error(f'Please enter a number between 1 and {len(options)}')}")
+            except ValueError:
+                print(f"{Colors.error('Please enter a valid number')}")
+
+    @staticmethod
+    def input_with_validation(prompt: str, validator=None, error_msg: str = "Invalid input") -> str:
+        """Get input with validation function."""
+        while True:
+            response = input(f"{Colors.BOLD}{prompt}{Colors.RESET}: ").strip()
+            if validator is None or validator(response):
+                return response
+            print(f"{Colors.error(error_msg)}")
 
 
 class CLIError(Exception):
@@ -196,9 +365,10 @@ class InteractiveAssistant:
         self.proposal_engine = ProposalEngine()
         self.mutation_engine = MutationEngine()
 
-        print("🤖 Personal Assistant - Interactive Mode")
-        print("Type 'help' for commands, 'quit' to exit")
-        print("-" * 50)
+        print(f"{Colors.bold('🤖 Personal Assistant - Interactive Mode')}")
+        print(f"{Colors.dim('Available commands: status, chat, query, goal, task, journal, email, model, config, help')}")
+        print(f"{Colors.dim('Type')} {Colors.bold('help')} {Colors.dim('for details,')} {Colors.bold('quit')} {Colors.dim('to exit')}")
+        print("-" * 70)
 
     def run(self, initial_message: Optional[str] = None):
         """Run the interactive session."""
@@ -207,16 +377,33 @@ class InteractiveAssistant:
 
         while True:
             try:
-                message = input("\nYou: ").strip()
+                # Enhanced prompt with command hints
+                prompt = f"\n{Colors.bold('You:')} "
+                message = input(prompt).strip()
                 if not message:
                     continue
 
                 if message.lower() in ['quit', 'exit', 'q']:
-                    print("Goodbye! 👋")
+                    print(f"{Colors.success('Goodbye! 👋')}")
                     break
                 elif message.lower() == 'help':
                     self._show_help()
                 else:
+                    # Check if this looks like a command (starts with known command)
+                    available_commands = ['status', 'chat', 'query', 'goal', 'task', 'journal', 'email', 'model', 'config', 'help']
+                    first_word = message.split()[0].lower()
+
+                    if first_word in available_commands:
+                        # This looks like a command, suggest using CLI instead
+                        print(f"{Colors.warning('💡 Tip:')} Use the main CLI for commands: {Colors.bold(f'python assistant.py {message}')}")
+                        print(f"{Colors.dim('Or continue with natural conversation...')}")
+                        continue
+
+                    # Check for partial command matches
+                    suggestions = AutoComplete.suggest_command(first_word, available_commands)
+                    if suggestions and len(first_word) >= 2:
+                        AutoComplete.show_suggestions(first_word, available_commands)
+
                     self._handle_message(message)
 
             except KeyboardInterrupt:
@@ -228,19 +415,37 @@ class InteractiveAssistant:
 
     def _show_help(self):
         """Show help information."""
-        print("""
-Available commands:
-  help          Show this help
-  quit/exit/q   Exit the assistant
+        print(f"\n{Colors.bold('🤖 Interactive Mode Commands')}")
+        print("=" * 40)
 
-Regular conversation:
-  Just type your message and the assistant will respond with suggestions
+        commands = [
+            ("help", "Show this help information"),
+            ("quit/exit/q", "Exit the assistant"),
+            ("status", "Show system status and memory"),
+            ("chat <message>", "Start direct conversation"),
+            ("query <question>", "Ask AI for suggestions"),
+            ("goal add/list/update", "Manage goals"),
+            ("task add/list/update", "Manage tasks"),
+            ("journal add/list", "Manage reflections"),
+            ("email process", "Process emails with AI"),
+            ("model list/select", "Manage AI models"),
+            ("config init", "Generate settings file"),
+        ]
 
-Examples:
-  "Help me plan my project"
-  "I need to work on my health goals"
-  "What's my progress on work tasks?"
-        """)
+        for cmd, desc in commands:
+            print(f"  {Colors.cyan(cmd.ljust(18))} {Colors.dim(desc)}")
+
+        print(f"\n{Colors.bold('💬 Regular Conversation')}")
+        print(f"{Colors.dim('Just type any message and the assistant will respond with AI-powered suggestions')}")
+        print(f"\n{Colors.bold('📝 Examples:')}")
+        examples = [
+            '"Help me plan my day"',
+            '"I need to work on my health goals"',
+            '"What\'s my progress on work tasks?"',
+            '"Add a reflection about today"',
+        ]
+        for example in examples:
+            print(f"  {Colors.dim('•')} {example}")
 
     def _handle_message(self, message: str):
         """Handle a user message."""
@@ -709,13 +914,13 @@ I understand you have a question. Let me help organize your thoughts.
 
 def handle_status(args: argparse.Namespace) -> None:
     """Handle the status command."""
-    print("🤖 Personal Assistant Status")
+    print(f"{Colors.bold('🤖 Personal Assistant Status')}")
     print("=" * 50)
-    print(f"📍 Ollama URL: {config.ollama_url}")
-    print(f"🤖 Current Model: {config.ollama_model}")
-    print(f"📁 Memory Directory: {config.memory_dir}")
-    print(f"🔧 Log Level: {config.log_level}")
-    print(f"📊 Max Context Size: {config.max_context_size} tokens")
+    print(f"{Colors.info('📍 Ollama URL:')} {Colors.bold(config.ollama_url)}")
+    print(f"{Colors.info('🤖 Current Model:')} {Colors.bold(config.ollama_model)}")
+    print(f"{Colors.info('📁 Memory Directory:')} {Colors.bold(config.memory_dir)}")
+    print(f"{Colors.info('🔧 Log Level:')} {Colors.bold(config.log_level)}")
+    print(f"{Colors.info('📊 Max Context Size:')} {Colors.bold(str(config.max_context_size))} tokens")
 
     # Check memory systems
     import os
@@ -849,15 +1054,26 @@ def handle_goal(args: argparse.Namespace) -> None:
         try:
             goals = talaos.get_goals()
             if goals:
-                print(f"🎯 Found {len(goals)} goals:")
+                print(f"{Colors.success('🎯 Found')} {Colors.bold(str(len(goals)))} {Colors.success('goals:')}")
                 for goal in goals:
                     status = goal.get('status', 'unknown')
                     content = goal.get('content', 'No content')
-                    print(f"   • [{status}] {content}")
+
+                    # Color code status
+                    if status == 'active':
+                        status_color = Colors.green
+                    elif status == 'completed':
+                        status_color = Colors.cyan
+                    elif status == 'cancelled':
+                        status_color = Colors.red
+                    else:
+                        status_color = Colors.yellow
+
+                    print(f"   {Colors.dim('•')} [{status_color(status)}] {content}")
             else:
-                print("📭 No goals found")
+                print(f"{Colors.warning('📭 No goals found')}")
         except Exception as e:
-            print(f"❌ Error listing goals: {e}")
+            print(f"{Colors.error('❌ Error listing goals:')} {e}")
 
     elif args.goal_action == 'update':
         try:
@@ -905,18 +1121,31 @@ def handle_task(args: argparse.Namespace) -> None:
         try:
             tasks = talaos.get_tasks()
             if tasks:
-                print(f"📋 Found {len(tasks)} tasks:")
+                print(f"{Colors.success('📋 Found')} {Colors.bold(str(len(tasks)))} {Colors.success('tasks:')}")
                 for task in tasks:
                     status = task.get('status', 'unknown')
                     content = task.get('content', 'No content')
                     parent = task.get('parent_goal', 'No parent')
-                    print(f"   • [{status}] {content}")
-                    if parent:
-                        print(f"     Parent: {parent}")
+
+                    # Color code status
+                    if status == 'in_progress':
+                        status_color = Colors.blue
+                    elif status == 'completed':
+                        status_color = Colors.cyan
+                    elif status == 'pending':
+                        status_color = Colors.yellow
+                    elif status == 'cancelled':
+                        status_color = Colors.red
+                    else:
+                        status_color = Colors.gray
+
+                    print(f"   {Colors.dim('•')} [{status_color(status)}] {content}")
+                    if parent and parent != 'No parent':
+                        print(f"     {Colors.dim('Parent:')} {Colors.dim(parent)}")
             else:
-                print("📭 No tasks found")
+                print(f"{Colors.warning('📭 No tasks found')}")
         except Exception as e:
-            print(f"❌ Error listing tasks: {e}")
+            print(f"{Colors.error('❌ Error listing tasks:')} {e}")
 
     elif args.task_action == 'update':
         try:
@@ -974,10 +1203,10 @@ def handle_email(args: argparse.Namespace) -> None:
                 print("❌ Error: No email password specified. Set EMAIL_PASSWORD environment variable or use --password")
                 return
 
-            print(f"📧 Connecting to {server}:{port}...")
-            print(f"👤 User: {username}")
-            print(f"🔒 SSL: {'Enabled' if use_ssl else 'Disabled'}")
-            print(f"📅 Processing emails from last {days} days...")
+            print(f"{Colors.info('📧 Connecting to')} {Colors.bold(f'{server}:{port}')}...")
+            print(f"{Colors.info('👤 User:')} {Colors.bold(username)}")
+            print(f"{Colors.info('🔒 SSL:')} {Colors.bold('Enabled' if use_ssl else 'Disabled')}")
+            print(f"{Colors.info('📅 Processing emails from last')} {Colors.bold(f'{days} days')}...")
 
             processor = EmailProcessor()
             results = processor.process_emails(
@@ -989,51 +1218,49 @@ def handle_email(args: argparse.Namespace) -> None:
             )
 
             # Report results
-            print(f"\n📊 Processing Results:")
-            print(f"✅ Success: {results['success']}")
-            print(f"🔗 Connection: {results['connection_status']}")
-            print(f"📧 Emails Processed: {results['emails_processed']}")
+            print(f"\n{Colors.bold('📊 Processing Results:')}")
+            success_color = Colors.success if results['success'] else Colors.error
+            print(f"{success_color('✅ Success:')} {results['success']}")
+            print(f"{Colors.info('🔗 Connection:')} {results['connection_status']}")
+            print(f"{Colors.info('📧 Emails Processed:')} {Colors.bold(str(results['emails_processed']))}")
 
             if results['errors']:
-                print(f"⚠️  Errors: {len(results['errors'])}")
+                print(f"{Colors.warning('⚠️  Errors:')} {len(results['errors'])}")
                 for error in results['errors'][:3]:  # Show first 3 errors
-                    print(f"   • {error}")
+                    print(f"   {Colors.dim('•')} {error}")
 
             if results['news_brief']:
-                print(f"\n📰 News Brief:")
+                print(f"\n{Colors.bold('📰 News Brief:')}")
                 print(f"{results['news_brief']}")
 
             if results['suggested_todos']:
-                print(f"\n📋 Suggested Todos ({len(results['suggested_todos'])}):")
+                print(f"\n{Colors.bold('📋 Suggested Todos')} ({len(results['suggested_todos'])}):")
                 for i, todo in enumerate(results['suggested_todos'], 1):
-                    print(f"  {i}. {todo.get('content', 'Unknown')}")
-                    print(f"     Priority: {todo.get('priority', 'medium')}")
+                    print(f"  {Colors.cyan(str(i))}. {todo.get('content', 'Unknown')}")
+                    print(f"     {Colors.dim('Priority:')} {todo.get('priority', 'medium')}")
                     if todo.get('reason'):
-                        print(f"     Reason: {todo.get('reason', '')[:100]}...")
+                        print(f"     {Colors.dim('Reason:')} {todo.get('reason', '')[:100]}...")
 
                 # Ask if user wants to add these todos
                 if results['suggested_todos']:
-                    print(f"\n🤔 Would you like to add these {len(results['suggested_todos'])} suggested todos to your list? (y/N): ")
-                    try:
-                        response = input().strip().lower()
-                        if response in ['y', 'yes']:
-                            added_count = 0
-                            for todo in results['suggested_todos']:
-                                try:
-                                    # Add as task (could be enhanced to add as goals too)
-                                    task_id = processor.telos.add_task(
-                                        content=todo.get('content', ''),
-                                        tags=['email-suggested'],
-                                        priority=todo.get('priority', 'medium')
-                                    )
-                                    added_count += 1
-                                    print(f"✅ Added todo: {todo.get('content', '')[:50]}...")
-                                except Exception as e:
-                                    print(f"❌ Failed to add todo: {e}")
+                    if InteractivePrompt.confirm(f"Add these {len(results['suggested_todos'])} suggested todos to your list?", default=False):
+                        added_count = 0
+                        for todo in results['suggested_todos']:
+                            try:
+                                # Add as task (could be enhanced to add as goals too)
+                                task_id = processor.telos.add_task(
+                                    content=todo.get('content', ''),
+                                    tags=['email-suggested'],
+                                    priority=todo.get('priority', 'medium')
+                                )
+                                added_count += 1
+                                print(f"{Colors.success('✅ Added todo:')} {todo.get('content', '')[:50]}...")
+                            except Exception as e:
+                                print(f"{Colors.error('❌ Failed to add todo:')} {e}")
 
-                            print(f"📋 Successfully added {added_count} todos to your list!")
-                    except (EOFError, KeyboardInterrupt):
-                        print("❌ Todo addition cancelled")
+                        print(f"{Colors.success('📋 Successfully added')} {added_count} {Colors.success('todos to your list!')}")
+                    else:
+                        print(f"{Colors.dim('❌ Todo addition cancelled')}")
 
         except Exception as e:
             print(f"❌ Email processing failed: {e}")
@@ -1071,30 +1298,20 @@ def handle_model(args: argparse.Namespace) -> None:
                 print("❌ No models found on Ollama server")
                 return
 
-            print("🤖 Select an Ollama Model:")
-            print("=" * 30)
-            for i, model in enumerate(models, 1):
+            print(f"\n{Colors.bold('🤖 Select an Ollama Model')}")
+            print("=" * 40)
+
+            # Create options list for the select function
+            options = []
+            for model in models:
                 name = model.get('name', 'Unknown')
                 size_mb = model.get('size', 0) // (1024 * 1024)
                 family = model.get('details', {}).get('family', 'Unknown')
-                print(f"{i:2d}. {name} ({size_mb} MB, {family})")
+                options.append(f"{name} ({size_mb} MB, {family})")
 
             try:
-                while True:
-                    choice = input(f"\nSelect model (1-{len(models)}) or 'q' to quit: ").strip()
-                    if choice.lower() in ['q', 'quit']:
-                        print("❌ Selection cancelled")
-                        return
-
-                    try:
-                        index = int(choice) - 1
-                        if 0 <= index < len(models):
-                            selected_model = models[index]['name']
-                            break
-                        else:
-                            print(f"❌ Invalid choice. Please enter 1-{len(models)}")
-                    except ValueError:
-                        print("❌ Please enter a valid number")
+                selected_index = InteractivePrompt.select(options, "Choose your AI model")
+                selected_model = models[selected_index]['name']
 
                 # Set the environment variable
                 import os

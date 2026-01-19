@@ -413,3 +413,48 @@ docs(readme): update installation instructions
 - Storybook for component development
 
 This document should be updated as the codebase evolves and new patterns emerge. Always refer to this document when making coding decisions.
+
+## Future Improvements Roadmap
+
+### Security & Privacy Enhancements
+- **Advanced Credential Management**: Keyring integration, OAuth2 for email access, encrypted .env files
+- **Data Encryption**: AES encryption for journal entries, secure memory wiping
+
+### Performance & Scalability
+- **Caching & Optimization**: Context caching, model response caching, lazy loading, background processing
+- **Keep JSONL Format**: Maintain human-readable JSONL files for journal and telos to allow external program access
+
+### User Experience Improvements
+- **Interactive CLI Enhancements**: Auto-completion, progress bars, colored output, interactive editors
+
+### AI & ML Enhancements
+- **Advanced AI Features**: Multi-model support, custom fine-tuning, sentiment analysis, predictive suggestions
+- **Context Intelligence**: Time-based context weighting, pattern recognition, proactive suggestions
+
+### Email Integration Upgrades
+- **Enhanced Processing**: Attachment analysis, calendar extraction, threading, priority scoring
+- **Multi-Account Support**: Multiple IMAP accounts, unified inbox, cross-account deduplication
+
+### Analytics & Insights
+- **Personal Analytics**: Goal completion trends, productivity patterns, sentiment analysis
+- **Reporting System**: Weekly reports, goal summaries, journal insights, email analysis
+
+### Developer Experience
+- **Testing Infrastructure**: Unit tests, integration tests, mock servers, CI/CD pipeline
+- **Development Tools**: Code quality tools (black, mypy, ruff), API documentation
+
+### Deployment & Distribution
+- **Packaging**: PyPI distribution, Docker images, systemd service, desktop app
+- **Cloud Integration**: Optional cloud backup/sync, multi-device sync, web access
+
+### Mobile & Cross-Platform
+- **Mobile Companion**: React Native app, voice input, push notifications, offline mode
+- **Cross-Platform**: Windows/macOS/Linux support, WSL integration
+
+### Integration Ecosystem
+- **Third-Party**: Calendar integration, task managers, fitness trackers, social media
+- **API Ecosystem**: REST API, webhooks, plugin system, SDK
+
+### Community & Growth
+- **Open Source Strategy**: Contribution guidelines, issue templates, regular releases
+- **Marketing**: Demo videos, user showcases, partnerships, academic collaborations
